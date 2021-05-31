@@ -394,13 +394,13 @@ double equationFunction(double x, double y, double z) {
 
 
 
-
+bool TryVariable(const string &symbol);
 bool TryParse(const string &symbol);
 int Priority(const string &c);
 bool isOperator(const string &c);
 string DD()
 {
-    string infix = "3 ^ 4 + ( 11 - ( 3 * 2 ) ) / 2";//our infix expression
+    string infix = "SIN ( x + 2 )";//our infix expression
     istringstream iss(infix);
     vector<string> tokens;//store the tokens here
     while(iss)
@@ -420,6 +420,9 @@ string DD()
         {
             outputList.push_back(tokens[i]);
         }
+        if(TryVariable(tokens[i])){
+            outputList.push_back(tokens[i]);
+        }
         if(tokens[i] == "(")
         {
             s.push(tokens[i]);
@@ -433,7 +436,7 @@ string DD()
             }
             s.pop();
         }
-        if(isOperator(tokens[i]) == true)
+        if(isOperator(tokens[i]))
         {
             while(!s.empty() && Priority(s.top()) >= Priority(tokens[i]))
             {
@@ -450,12 +453,13 @@ string DD()
         s.pop();
     }
 
-    string f="";
+    string f="{ ";
     for(unsigned int i = 0; i < outputList.size(); i++)
     {
         f+=outputList[i];
         f+=" ";
     }
+    f+="}";
     return f;
 }
 bool TryParse(const string &symbol)
@@ -473,6 +477,23 @@ bool TryParse(const string &symbol)
         }
     }
     return isNumber;
+}
+
+bool TryVariable(const string &symbol)
+{
+    bool isNumber = false;
+    if(symbol.size()==1){
+        if(symbol=="x"){
+            return true;
+        }
+        if(symbol=="y"){
+            return true;
+        }
+        if(symbol=="z"){
+            return true;
+        }
+    }
+    return false;
 }
 int Priority(const string &c)
 {
@@ -495,7 +516,14 @@ int Priority(const string &c)
 }
 bool isOperator(const string &c)
 {
-    return (c == "+" || c == "-" || c == "*" || c == "/" || c == "^");
+    for(int k=0;k<MAX_FUNCTION;k++){
+        if(c==myFunction[k].name){
+            return true;
+        }
+    }
+
+
+    return false;
 }
 
 
@@ -508,9 +536,11 @@ Java_com_vaca_myapplication_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-    equation.expression="{ x 3 + SIN }";
+    string xx=DD();
+    char * da=&xx[0];
+    equation.expression=da;
     parse_expression();
     double x=equationFunction(2,0,0);
-    hello+=DD();
+    hello+=to_string(x);
     return env->NewStringUTF(hello.c_str());
 }
