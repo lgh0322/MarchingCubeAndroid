@@ -3,10 +3,23 @@
 #include "table.h"
 #include <math.h>
 #include <android/log.h>
+#include <iostream>
+#include <iterator>
+#include <stack>
+#include <sstream>
+#include <vector>
+using namespace std;
+
+
+
+
+
+
+
 #define  LOG_TAG    "your-log-tag"
 
 #define  LOGE(...)  __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+
 
 #define isnumber(c)            ((c >= '0' && c <= '9') || c == '.')
 #define isvariable(c)            (c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e' || c == 'f')
@@ -131,7 +144,7 @@ double expa() { return exp(execution_stack[stack_index]); }
 
 double powa() { return pow(execution_stack[stack_index - 1], execution_stack[stack_index]); }
 
-FUNCTION function[] = {
+FUNCTION myFunction[] = {
         {"SIN",  1, sina},
         {"COS",  1, cosa},
         {"TAN",  1, tana},
@@ -318,7 +331,7 @@ int parse_expression() {
             function_name[i] = '\0'; ++expression;
             int found = 0;
             for(i = 0; i < MAX_FUNCTION; i++) {
-                if(!strcmp(function[i].name, function_name)) {
+                if(!strcmp(myFunction[i].name, function_name)) {
                     equation.xyz_token[equation.xyz_tokennumber].index = i;
                     equation.xyz_token[equation.xyz_tokennumber++].type = FUNCTION_TYPE;
                     found = 1;break;
@@ -354,13 +367,13 @@ double equationFunction(double x, double y, double z) {
             case OPERATOR_TYPE:	execution_stack[stack_index] = sqrt(execution_stack[stack_index]);
                 break;
 
-            case FUNCTION_TYPE:if(function[equation.xyz_token[token].index].argnum == 1) {
+            case FUNCTION_TYPE:if(myFunction[equation.xyz_token[token].index].argnum == 1) {
                     execution_stack[stack_index] =
-                            function[equation.xyz_token[token].index].function();
+                            myFunction[equation.xyz_token[token].index].function();
                 }
                 else {
                     execution_stack[stack_index - 1] =
-                            function[equation.xyz_token[token].index].function();
+                            myFunction[equation.xyz_token[token].index].function();
                     --stack_index;
                 }
                 break;
@@ -382,13 +395,112 @@ double equationFunction(double x, double y, double z) {
 
 
 
+bool TryParse(const string &symbol);
+int Priority(const string &c);
+bool isOperator(const string &c);
+string DD()
+{
+    string infix = "3 ^ 4 + ( 11 - ( 3 * 2 ) ) / 2";//our infix expression
+    istringstream iss(infix);
+    vector<string> tokens;//store the tokens here
+    while(iss)
+    {
+        string temp;
+        iss >>temp;
+        tokens.push_back(temp);
+    }
+    vector<string> outputList;//output vector
+    stack<string> s;//main stack
+
+    //operator: +, -, *, /, ^, ()
+    //operands: 1234567890
+    for(unsigned int i = 0; i < tokens.size(); i++)  //read from right to left
+    {
+        if(TryParse(tokens[i]))
+        {
+            outputList.push_back(tokens[i]);
+        }
+        if(tokens[i] == "(")
+        {
+            s.push(tokens[i]);
+        }
+        if(tokens[i] == ")")
+        {
+            while(!s.empty() && s.top() != "(")
+            {
+                outputList.push_back(s.top());
+                s.pop();
+            }
+            s.pop();
+        }
+        if(isOperator(tokens[i]) == true)
+        {
+            while(!s.empty() && Priority(s.top()) >= Priority(tokens[i]))
+            {
+                outputList.push_back(s.top());
+                s.pop();
+            }
+            s.push(tokens[i]);
+        }
+    }
+    //pop any remaining operators from the stack and insert to outputlist
+    while(!s.empty())
+    {
+        outputList.push_back(s.top());
+        s.pop();
+    }
+
+    string f="";
+    for(unsigned int i = 0; i < outputList.size(); i++)
+    {
+        f+=outputList[i];
+        f+=" ";
+    }
+    return f;
+}
+bool TryParse(const string &symbol)
+{
+    bool isNumber = false;
+    for(unsigned int i = 0; i < symbol.size(); i++)
+    {
+        if(!isdigit(symbol[i]))
+        {
+            isNumber = false;
+        }
+        else
+        {
+            isNumber = true;
+        }
+    }
+    return isNumber;
+}
+int Priority(const string &c)
+{
+    if(c == "^")
+    {
+        return 3;
+    }
+    if(c == "*" || c == "/")
+    {
+        return 2;
+    }
+    if(c== "+" || c == "-")
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+bool isOperator(const string &c)
+{
+    return (c == "+" || c == "-" || c == "*" || c == "/" || c == "^");
+}
 
 
 
 
-
-
-using namespace std;
 
 
 extern "C" JNIEXPORT jstring JNICALL
@@ -396,9 +508,9 @@ Java_com_vaca_myapplication_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-    equation.expression="{ x 3 + }";
+    equation.expression="{ x 3 + SIN }";
     parse_expression();
     double x=equationFunction(2,0,0);
-    hello+=to_string(x);
+    hello+=DD();
     return env->NewStringUTF(hello.c_str());
 }
